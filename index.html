@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Taurus Watchdog</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex items-center justify-center font-sans">
+
+  <!-- PRIHLASOVACÍ FORMULÁR -->
+  <div id="login-box" class="w-full max-w-md bg-slate-900 border border-slate-800 p-8 rounded-lg shadow-2xl">
+    <div class="text-center mb-6">
+      <span class="inline-block bg-teal-500/10 text-teal-400 border border-teal-500/20 text-xs px-2.5 py-1 rounded font-mono mb-3">PS</span>
+      <h1 class="text-2xl font-bold tracking-tight text-white">Taurus Watchdog</h1>
+      <p class="text-sm text-slate-400 mt-1">Prihláste sa do riadiacej konzoly.</p>
+    </div>
+
+    <div id="error-msg" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded"></div>
+
+    <form id="login-form" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">E-mail</label>
+        <input type="email" id="email" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Heslo</label>
+        <input type="password" id="password" required class="w-full bg-slate-950 border border-slate-800 rounded px-3 py-2 text-sm text-white focus:outline-none focus:border-teal-500">
+      </div>
+      <button type="submit" class="w-full bg-teal-600 hover:bg-teal-500 text-white font-medium py-2 rounded text-sm transition">Prihlásiť sa</button>
+    </form>
+  </div>
+
+  <!-- PANEL SPRÁVY ZARIADENÍ -->
+  <div id="dashboard" class="hidden w-full max-w-4xl p-6">
+    <div class="flex justify-between items-center mb-6 bg-slate-900 border border-slate-800 p-4 rounded-lg">
+      <h1 class="text-xl font-bold text-teal-400">Taurus Watchdog Console</h1>
+      <button id="logout-btn" class="bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 px-3 py-2 rounded border border-slate-700">Odhlásiť sa</button>
+    </div>
+
+    <div class="bg-slate-900 border border-slate-800 rounded-lg p-6">
+      <h2 class="text-lg font-semibold mb-4 text-slate-200">Monitorované zariadenia</h2>
+      <div id="device-list" class="space-y-3">
+        <p class="text-slate-500 text-sm">Načítavam zariadenia...</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ÚDAJE ZO SUPABASE
+    const SUPABASE_URL = "https://rxxmcwrznuliziukvehr.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_wXSVVmEexpgcm-aBZB5u1g_Ya5hWz9F";
+    
+    const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const loginBox = document.getElementById('login-box');
+    const dashboard = document.getElementById('dashboard');
+    const loginForm = document.getElementById('login-form');
+    const errorMsg = document.getElementById('error-msg');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    loginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      errorMsg.classList.add('hidden');
+
+      const { data, error } = await db.auth.signInWithPassword({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+      });
+
+      if (error) {
+        errorMsg.textContent = "Chybné prihlasovacie údaje!";
+        errorMsg.classList.remove('hidden');
+      } else {
+        showDashboard();
+      }
+    });
+
+    logoutBtn.addEventListener('click', async () => {
+      await db.auth.signOut();
+      location.reload();
+    });
+
+    async function showDashboard() {
+      loginBox.classList.add('hidden');
+      dashboard.classList.remove('hidden');
+
+      const { data: devices, error } = await db.from('devices').select('*');
+      const listEl = document.getElementById('device-list');
+
+      if (error || !devices || !devices.length) {
+        listEl.innerHTML = '<p class="text-slate-500 text-sm">Žiadne zariadenia neboli nájdené v databáze.</p>';
+        return;
+      }
+
+      listEl.innerHTML = devices.map(d => `
+        <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded">
+          <div class="flex items-center space-x-3">
+            <span class="w-3 h-3 rounded-full ${d.status === 'online' ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}"></span>
+            <span class="font-medium text-slate-200">${d.name}</span>
+          </div>
+          <span class="text-xs text-slate-500">Posledný ping: ${new Date(d.last_ping).toLocaleString()}</span>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
