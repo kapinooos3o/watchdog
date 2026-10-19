@@ -3,7 +3,7 @@ import time
 
 # 1. VAŠE ÚDAJE ZO SUPABASE
 SUPABASE_URL = "https://rxxmcwrznuliziukvehr.supabase.co"
-SUPABASE_KEY = "VÁŠ_PUBLISHABLE_KEY_ZO_SUPABASE"
+SUPABASE_KEY = "sb_publishable_wXSVVmEexpgcm-aBZB5u1g_Ya5hWz9F"
 
 # 2. ÚDAJE Z VNNOX CARE (z vášho obrázka)
 VNNOX_API_URL = "https://api-eu.vnnox.com"
