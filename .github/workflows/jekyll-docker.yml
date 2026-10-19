@@ -1,0 +1,86 @@
+import requests
+import time
+
+# 1. VAŠE ÚDAJE ZO SUPABASE
+SUPABASE_URL = "https://rxxmcwrznuliziukvehr.supabase.co"
+SUPABASE_KEY = "VÁŠ_PUBLISHABLE_KEY_ZO_SUPABASE"
+
+# 2. ÚDAJE Z VNNOX CARE (z vášho obrázka)
+VNNOX_API_URL = "https://api-eu.vnnox.com"
+VNNOX_USER = "stregl"
+VNNOX_PASS = "z318rk"
+
+supabase_headers = {
+    "apikey": SUPABASE_KEY,
+    "Authorization": f"Bearer {SUPABASE_KEY}",
+    "Content-Type": "application/json",
+    "Prefer": "resolution=merge-duplicates"
+}
+
+def get_vnnox_token():
+    """Získa autentifikačný token z VNNOX Care API."""
+    url = f"{VNNOX_API_URL}/v2/login"
+    payload = {
+        "username": VNNOX_USER,
+        "password": VNNOX_PASS
+    }
+    try:
+        response = requests.post(url, json=payload, timeout=10)
+        if response.status_code == 200:
+            data = response.json()
+            return data.get("data", {}).get("token") or data.get("token")
+    except Exception as e:
+        print(f"Chyba pri prihlasovaní do VNNOX: {e}")
+    return None
+
+def sync_screens():
+    """Stiahne obrazovky z VNNOX a aktualizuje ich v Supabase."""
+    token = get_vnnox_token()
+    if not token:
+        print("Nepodarilo sa získať VNNOX token.")
+        return
+
+    vnnox_headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json"
+    }
+
+    # Stiahnutie zoznamu displejov/hráčov
+    screens_url = f"{VNNOX_API_URL}/v2/player/list"
+    try:
+        res = requests.get(screens_url, headers=vnnox_headers, timeout=10)
+        if res.status_code == 200:
+            players = res.json().get("data", [])
+            
+            for player in players:
+                # Načítanie mena a stavu zo záznamu VNNOX
+                player_id = player.get("id") or player.get("playerId")
+                player_name = player.get("name", f"Obrazovka {player_id}")
+                # VNNOX vracia stav online (1/true/ONLINE)
+                is_online = player.get("status") in [1, True, "ONLINE", "online"]
+
+                # Príprava dát pre Supabase
+                device_data = {
+                    "id": player_id,
+                    "name": player_name,
+                    "status": "online" if is_online else "offline",
+                    "last_ping": "now()"
+                }
+
+                # Zápis do Supabase databázy
+                requests.post(
+                    f"{SUPABASE_URL}/rest/v1/devices",
+                    json=device_data,
+                    headers=supabase_headers
+                )
+                print(f"Aktualizované: {player_name} -> {'ONLINE' if is_online else 'OFFLINE'}")
+        else:
+            print(f"Chyba VNNOX API: {res.status_code} - {res.text}")
+    except Exception as e:
+        print(f"Chyba pri komunikácii s VNNOX: {e}")
+
+# Spúšťa synchronizáciu každých 60 sekúnd
+while True:
+    print("Prebieha synchronizácia s VNNOX Care...")
+    sync_screens()
+    time.sleep(60)
