@@ -1,0 +1,26 @@
+name: VNNOX Care Watchdog Sync
+
+on:
+  schedule:
+    # Spúšťa sa automaticky každých 15 minút
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Umožňuje spustiť synchronizáciu aj ručne tlačidlom
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout kódu
+        uses: actions/checkout@v3
+
+      - name: Nastavenie Pythona
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Inštalácia knižnice requests
+        run: pip install requests
+
+      - name: Spustenie VNNOX synchronizácie
+        run: python vnnox_sync.py
