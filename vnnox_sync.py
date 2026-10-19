@@ -6,8 +6,8 @@ SUPABASE_URL = "https://rxxmcwrznuliziukvehr.supabase.co"
 SUPABASE_KEY = "sb_publishable_wXSVVmEexpgcm-aBZB5u1g_Ya5hWz9F"
 
 VNNOX_API_URL = "https://api-eu.vnnox.com"
-VNNOX_USER = "stregl"
-VNNOX_PASS = "z318rk"
+VNNOX_USER = "Stregl"
+VNNOX_PASS = "ImageweLL2021!"
 
 supabase_headers = {
     "apikey": SUPABASE_KEY,
